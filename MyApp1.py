@@ -32,6 +32,7 @@ class LiterButton(Button):  # Буковка
         self.clicked = False
         self.cage = None
         self.letter = liter
+        self.working = True
 
 
 class EmptyCage(Button):  # Пустая клеточка
@@ -45,18 +46,35 @@ class EmptyCage(Button):  # Пустая клеточка
         self.y_ = y
         self.filled = False
         self.let = None
+        self.num = num
+
+    def alpha_zero(self):
+        self.background_color = (0, 0, 0, 0)
+
+
+class HelpButton(Button):
+    def __init__(self):
+        super().__init__(pos_hint={'x': 0.01, 'y': 0.95},
+                         size_hint=(size_x, size_y),
+                         background_color=(0, .5, 0, 1),
+                         text='?',
+                         background_normal='')
 
 
 class MyApp(App):  # Приложение
     def build(self):
         self.lay = FloatLayout()  # Корень
         self.lay.add_widget(Image(source='data/background.png'))
+        help_button = HelpButton()
+        help_button.bind(on_press=self.help_callback)
+        self.lay.add_widget(help_button)
         self.cages = []
+        self.letters = []
         self.new_word()  # Создаём новое слово
         return self.lay
 
     def new_word(self):  # Новое слово
-        self.word = 'крещение руси'.upper()  # Test
+        self.word = 'самодержавие'.upper()  # Test
         self.new_empty_cages()
         self.add_letters()
 
@@ -88,12 +106,16 @@ class MyApp(App):  # Приложение
             a = LiterButton((i + 1) * space_1 + i * size_x, 0.3, new_letters[i])
             a.bind(on_press=self.callback)
             self.lay.add_widget(a)
+            self.letters.append(a)
         for i in range(b):
             a = LiterButton((i + 1) * space_1 + i * size_x, 0.2, new_letters[i + b])
             a.bind(on_press=self.callback)
             self.lay.add_widget(a)
+            self.letters.append(a)
 
     def callback(self, instance):
+        if not instance.working:
+            return
         if not instance.clicked:
             for i in self.cages:
                 if not i.filled:
@@ -110,6 +132,30 @@ class MyApp(App):  # Приложение
             instance.cage = None
             instance.clicked = False
 
+        self.win()
+
+    def help_callback(self, instance):
+        possible = list(filter(lambda x: not x.filled, self.cages))
+        chosen = random.choice(possible)
+        liter = ''.join(self.word.split())[chosen.num]
+        for i in self.letters:
+            if i.clicked:
+                continue
+            if i.text == liter:
+                i.pos_hint = {'x': chosen.x_, 'y': chosen.y_}
+                i.working = False
+                i.background_color = (0, 0.3, 0, 1)
+                chosen.alpha_zero()
+                self.lay.remove_widget(chosen)
+                i.clicked = True
+                i.cage = chosen
+                i.cage.filled = True
+                i.cage.let = i
+                break
+
+        self.win()
+
+    def win(self):
         cur_word = ''
         for i in self.cages:
             try:
