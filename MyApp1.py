@@ -5,8 +5,10 @@ from kivy.uix.floatlayout import FloatLayout
 from kivy.config import Config
 from kivy.graphics import Color, Rectangle
 from kivy.uix.image import Image
+from kivy.clock import Clock
 import random
 import sys
+import sqlite3
 
 Config.set('graphics', 'width', 350)  # Не забыть убрать
 Config.set('graphics', 'height', 350 * 16 // 9)  # Не забыть убрать
@@ -16,6 +18,8 @@ height = Config.getint('graphics', 'height')
 
 size_x = 0.05
 size_y = 0.04
+image_x = 0.4
+image_y = 0.17
 alphabet = list(map(chr, list(range(1040, 1072)))) + ['Ё']
 
 
@@ -59,22 +63,47 @@ class HelpButton(Button):
                          background_color=(0, .5, 0, 1),
                          text='?',
                          background_normal='')
+        self.working = True
 
 
 class MyApp(App):  # Приложение
     def build(self):
         self.lay = FloatLayout()  # Корень
         self.lay.add_widget(Image(source='data/background.png'))
-        help_button = HelpButton()
-        help_button.bind(on_press=self.help_callback)
-        self.lay.add_widget(help_button)
+        self.help_button = HelpButton()
+        self.help_button.bind(on_press=self.help_callback)
+        self.lay.add_widget(self.help_button)
         self.cages = []
         self.letters = []
         self.new_word()  # Создаём новое слово
         return self.lay
 
     def new_word(self):  # Новое слово
-        self.word = 'самодержавие'.upper()  # Test
+        con = sqlite3.connect('levels.sqlite3')
+        cur = con.cursor()
+        self.word = cur.execute("""SELECT answer FROM levels
+        WHERE done = 0""").fetchone()[0]
+        con.close()
+        self.lay.add_widget(Image(source=f'data/{self.word}/1.png',
+                                  pos_hint={'x': 0.05, 'y': 0.7},
+                                  allow_stretch=True,
+                                  keep_ratio=False,
+                                  size_hint=(image_x, image_y)))
+        self.lay.add_widget(Image(source=f'data/{self.word}/2.png',
+                                  pos_hint={'x': 0.95 - image_x, 'y': 0.7},
+                                  allow_stretch=True,
+                                  keep_ratio=False,
+                                  size_hint=(image_x, image_y)))
+        self.lay.add_widget(Image(source=f'data/{self.word}/3.png',
+                                  pos_hint={'x': 0.05, 'y': 0.5},
+                                  allow_stretch=True,
+                                  keep_ratio=False,
+                                  size_hint=(image_x, image_y)))
+        self.lay.add_widget(Image(source=f'data/{self.word}/4.png',
+                                  pos_hint={'x': 0.95 - image_x, 'y': 0.5},
+                                  allow_stretch=True,
+                                  keep_ratio=False,
+                                  size_hint=(image_x, image_y)))
         self.new_empty_cages()
         self.add_letters()
 
@@ -132,9 +161,11 @@ class MyApp(App):  # Приложение
             instance.cage = None
             instance.clicked = False
 
-        self.win()
+        self.check_win()
 
     def help_callback(self, instance):
+        if not instance.working:
+            return
         possible = list(filter(lambda x: not x.filled, self.cages))
         chosen = random.choice(possible)
         liter = ''.join(self.word.split())[chosen.num]
@@ -153,9 +184,9 @@ class MyApp(App):  # Приложение
                 i.cage.let = i
                 break
 
-        self.win()
+        self.check_win()
 
-    def win(self):
+    def check_win(self):
         cur_word = ''
         for i in self.cages:
             try:
@@ -164,7 +195,13 @@ class MyApp(App):  # Приложение
             except AttributeError:
                 break
         if cur_word == ''.join(self.word.split()):
-            sys.exit('You win')
+            for i in self.letters:
+                i.working = False
+            self.help_button.working = False
+            Clock.schedule_once(self.win, 2)
+
+    def win(self, dt):
+        sys.exit('You win')
 
 
 if __name__ == '__main__':
