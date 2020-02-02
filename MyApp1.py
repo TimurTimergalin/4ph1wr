@@ -4,6 +4,7 @@ from kivy.uix.widget import Widget
 from kivy.uix.floatlayout import FloatLayout
 from kivy.config import Config
 from kivy.graphics import Color, Rectangle
+from kivy.uix.label import Label
 from kivy.uix.image import Image
 from kivy.clock import Clock
 import random
@@ -43,7 +44,7 @@ class EmptyCage(Button):  # Пустая клеточка
     def __init__(self, x, y, num):
         super().__init__(pos_hint={'x': x, 'y': y},
                          size_hint=(size_x, size_y),
-                         background_color=(.1, .1, .1, 1),
+                         background_color=(.5, .5, .5, 1),
                          background_normal='',
                          background_down='')
         self.x_ = x
@@ -79,10 +80,22 @@ class MyApp(App):  # Приложение
         return self.lay
 
     def new_word(self):  # Новое слово
+        self.cages=[]
+        self.letters =[]
         con = sqlite3.connect('levels.sqlite3')
         cur = con.cursor()
-        self.word = cur.execute("""SELECT answer FROM levels
-        WHERE done = 0""").fetchone()[0]
+        word = cur.execute("""SELECT id, answer FROM levels
+        WHERE done = 0""").fetchone()
+        try:
+            self.word = word[1]
+        except TypeError:
+            cur.execute("""UPDATE levels
+            SET done = 0""")
+            con.commit()
+            word = cur.execute("""SELECT id, answer FROM levels
+                    WHERE done = 0""").fetchone()
+        finally:
+            self.word = word[1]
         con.close()
         self.lay.add_widget(Image(source=f'data/{self.word}/1.png',
                                   pos_hint={'x': 0.05, 'y': 0.7},
@@ -104,6 +117,10 @@ class MyApp(App):  # Приложение
                                   allow_stretch=True,
                                   keep_ratio=False,
                                   size_hint=(image_x, image_y)))
+        self.lay.add_widget(Label(text=f'{word[0]}',
+                                  pos_hint={'x': 0.35, 'y': 0.8},
+                                  size_hint=(0.3, 0.3),
+                                  font_size='30sp'))
         self.new_empty_cages()
         self.add_letters()
 
@@ -167,24 +184,42 @@ class MyApp(App):  # Приложение
         if not instance.working:
             return
         possible = list(filter(lambda x: not x.filled, self.cages))
-        chosen = random.choice(possible)
-        liter = ''.join(self.word.split())[chosen.num]
-        for i in self.letters:
-            if i.clicked:
-                continue
-            if i.text == liter:
-                i.pos_hint = {'x': chosen.x_, 'y': chosen.y_}
-                i.working = False
-                i.background_color = (0, 0.3, 0, 1)
-                chosen.alpha_zero()
-                self.lay.remove_widget(chosen)
-                i.clicked = True
-                i.cage = chosen
-                i.cage.filled = True
-                i.cage.let = i
-                break
+        try:
+            chosen = random.choice(possible)
+        except IndexError:
+            for i in self.cages:
+                if not i.let.working:
+                    continue
+                if i.let.letter != self.word[i.num]:
+                    self.callback(i.let)
+                    break
+        else:
+            done = False
+            liter = ''.join(self.word.split())[chosen.num]
+            for i in self.letters:
+                if i.clicked:
+                    continue
+                if i.text == liter:
+                    i.pos_hint = {'x': chosen.x_, 'y': chosen.y_}
+                    i.working = False
+                    i.background_color = (0, 0.3, 0, 1)
+                    chosen.alpha_zero()
+                    self.lay.remove_widget(chosen)
+                    i.clicked = True
+                    i.cage = chosen
+                    i.cage.filled = True
+                    i.cage.let = i
+                    done = True
+                    break
+            if not done:
+                for i in self.cages:
+                    if not i.let.working:
+                        continue
+                    if i.let.letter != self.word[i.num]:
+                        self.callback(i.let)
+                        break
 
-        self.check_win()
+            self.check_win()
 
     def check_win(self):
         cur_word = ''
@@ -198,10 +233,18 @@ class MyApp(App):  # Приложение
             for i in self.letters:
                 i.working = False
             self.help_button.working = False
-            Clock.schedule_once(self.win, 2)
+            Clock.schedule_once(self.win, 1)
 
     def win(self, dt):
-        sys.exit('You win')
+        con = sqlite3.connect('levels.sqlite3')
+        cur = con.cursor()
+        cur.execute(f"""UPDATE levels
+        SET done = 1
+        WHERE answer = ?""", (self.word,))
+        con.commit()
+        con.close()
+        self.new_word()
+        self.help_button.working = True
 
 
 if __name__ == '__main__':
