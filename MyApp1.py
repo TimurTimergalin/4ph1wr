@@ -82,7 +82,7 @@ class MyApp(App):  # Приложение
     def new_word(self):  # Новое слово
         self.cages=[]
         self.letters =[]
-        con = sqlite3.connect('levels.sqlite3')
+        con = sqlite3.connect('content.sqlite3')
         cur = con.cursor()
         word = cur.execute("""SELECT id, answer FROM levels
         WHERE done = 0""").fetchone()
@@ -236,7 +236,7 @@ class MyApp(App):  # Приложение
             Clock.schedule_once(self.win, 1)
 
     def win(self, dt):
-        con = sqlite3.connect('levels.sqlite3')
+        con = sqlite3.connect('content.sqlite3')
         cur = con.cursor()
         cur.execute(f"""UPDATE levels
         SET done = 1
