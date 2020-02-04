@@ -67,6 +67,42 @@ class HelpButton(Button):
         self.working = True
 
 
+class HintDialog(FloatLayout):
+    def __init__(self, game):
+        super().__init__(size_hint=(.67, .25),
+                         pos_hint={'x': .17, 'y': .33})
+        self.canvas.before.clear()
+        with self.canvas.before:
+            Color(.1, .1, .1, 1)
+            self.rect = Rectangle(pos=self.pos, size=self.size)
+
+        self.game = game
+        self.add_widget(Label(text='Вы действительно хотите\nпотратить [color=fafa00]60[/color] монет,\nчтобы получить подсказку?',
+                              pos_hint={'x': 0.4, 'y': 0.6},
+                              size_hint=(0.2, 0.2),
+                              halign='center',
+                              valign='center',
+                              font_size='15sp',
+                              markup=True))
+
+        self.add_widget(Button(text='Да',
+                               background_color=(0, 0.75, 0.2, 1),
+                               size_hint=(0.2, 0.2),
+                               pos_hint={'x': 0.1, 'y': 0.1},
+                               on_press=self.callback)),
+
+        self.add_widget(Button(text='Нет',
+                               background_color=(0, 0.75, 0.2, 1),
+                               size_hint=(0.2, 0.2),
+                               pos_hint={'x': 0.7, 'y': 0.1},
+                               on_press=self.callback))
+
+    def callback(self, instance):
+        if instance.text == 'Да':
+            self.game.hint()
+        self.game.remove_widget(self)
+
+
 class Game(FloatLayout):
     def __init__(self):
         super(Game, self).__init__()
@@ -77,6 +113,35 @@ class Game(FloatLayout):
         self.cages = []
         self.letters = []
         self.new_word()
+        self.get_score()
+
+    def get_score(self):
+        try:
+            self.remove_widget(self.score_label)
+        except AttributeError:
+            pass
+        con = sqlite3.connect('content.sqlite3')
+        cur = con.cursor()
+        self.score = cur.execute("""SELECT money FROM stats""").fetchone()[0]
+        self.score_label = Label(text=str(self.score),
+                                 pos_hint={'x': 0.89, 'y': 0.95},
+                                 size_hint=(0.03, 0.03))
+        self.add_widget(self.score_label)
+        self.add_widget(Image(source='data/coin.png',
+                              allow_stretch=True,
+                              keep_ratio=False,
+                              size_hint=(0.03, 0.03 / 16 * 9),
+                              pos_hint={'x': 0.95, 'y': 0.9555}))
+
+    def pay(self):
+        con = sqlite3.connect('content.sqlite3')
+        cur = con.cursor()
+        self.score -= 60
+        cur.execute("""UPDATE stats
+        SET money = ?""", (self.score,))
+        con.commit()
+        con.close()
+        self.get_score()
 
     def new_word(self):  # Новое слово
         self.cages = []
@@ -85,9 +150,9 @@ class Game(FloatLayout):
         cur = con.cursor()
         word = cur.execute("""SELECT id, answer FROM levels
         WHERE done = 0""").fetchone()
-        try:
+        try:  # Этот блок описывает действия, если все уровни пройдены
             self.word = word[1]
-        except TypeError:
+        except TypeError:  # Его нужно будет изменить
             cur.execute("""UPDATE levels
             SET done = 0""")
             con.commit()
@@ -182,6 +247,14 @@ class Game(FloatLayout):
     def help_callback(self, instance):
         if not instance.working:
             return
+        if self.score < 60:
+            return
+        dialog = HintDialog(self)
+        dialog.bind(pos=self._update_rect, size=self._update_rect)
+        self.add_widget(dialog)
+
+    def hint(self):
+        self.pay()
         possible = list(filter(lambda x: not x.filled, self.cages))
         try:
             chosen = random.choice(possible)
@@ -235,19 +308,27 @@ class Game(FloatLayout):
             Clock.schedule_once(self.win, 1)
 
     def win(self, dt):
+        for i in self.cages:
+            self.remove_widget(i)
+        for i in self.letters:
+            self.remove_widget(i)
         con = sqlite3.connect('content.sqlite3')
         cur = con.cursor()
         cur.execute(f"""UPDATE levels
         SET done = 1
         WHERE answer = ?""", (self.word,))
+        self.score += 50
+        cur.execute("""UPDATE stats
+        SET money = ?""", (self.score,))
         con.commit()
         con.close()
-        for i in self.cages:
-            self.remove_widget(i)
-        for i in self.letters:
-            self.remove_widget(i)
         self.new_word()
         self.help_button.working = True
+        self.get_score()
+
+    def _update_rect(self, instance, value):
+        instance.rect.pos = instance.pos
+        instance.rect.size = instance.size
 
 
 class Root(FloatLayout):
