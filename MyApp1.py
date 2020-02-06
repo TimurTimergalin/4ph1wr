@@ -7,12 +7,11 @@ from kivy.graphics import Color, Rectangle
 from kivy.uix.label import Label
 from kivy.uix.image import Image
 from kivy.clock import Clock
+from kivy.core.window import Window
 import random
-import sys
 import sqlite3
 
-Config.set('graphics', 'width', 350)  # Не забыть убрать
-Config.set('graphics', 'height', 350 * 16 // 9)  # Не забыть убрать
+Window.size = (350, 350 * 16 / 9)
 
 width = Config.getint('graphics', 'width')
 height = Config.getint('graphics', 'height')
@@ -114,7 +113,7 @@ class HintDialog(FloatLayout):
 
 class MainMenu(FloatLayout):
     def __init__(self):
-        super(MainMenu, self).__init__()
+        super(MainMenu, self).__init__(pos_hint={'x': 0, 'y': 0})
         self.add_emblem()
         self.add_label()
         self.add_button()
@@ -148,7 +147,7 @@ class MainMenu(FloatLayout):
 
 class Game(FloatLayout):
     def __init__(self):
-        super(Game, self).__init__()
+        super(Game, self).__init__(pos_hint={'x': 1, 'y': 0})
         self.help_button = HelpButton()
         self.help_button.bind(on_press=self.help_callback)
         self.add_widget(self.help_button)
@@ -391,16 +390,54 @@ class Root(FloatLayout):
         self.menu = MainMenu()
         self.start()
 
-    def start_game(self):
-        self.remove_widget(self.menu)
-        self.add_widget(self.game)
-
-    def end_game(self):
-        self.remove_widget(self.game)
-        self.add_widget(self.menu)
+        self.timer = 0
 
     def start(self):
         self.add_widget(self.menu)
+        self.add_widget(self.game)
+
+    def start_game(self):
+        try:
+            self.event.cancel()
+        except AttributeError:
+            pass
+        self.event = Clock.schedule_interval(self.play_callback, 1 / 60)
+        Window.bind(on_keyboard=self.back_button_previous)
+        Config.set('kivy', 'exit_on_escape', 0)
+
+    def end_game(self):
+        try:
+            self.event.cancel()
+        except AttributeError:
+            pass
+        self.event = Clock.schedule_interval(self.previous_callback, 1 / 60)
+
+    def play_callback(self, dt):
+        if self.timer <= -0.48:
+            self.event.cancel()
+        self.game.pos_hint['x'] -= 1 / 30
+        self.menu.pos_hint['x'] -= 1 / 30
+        self.timer -= 1 / 60
+        self.remove_widget(self.game)
+        self.add_widget(self.game)
+        self.remove_widget(self.menu)
+        self.add_widget(self.menu)
+
+    def previous_callback(self, dt):
+        if self.timer >= -0.02:
+            self.event.cancel()
+            Config.set('kivy', 'exit_on_escape', 1)
+        self.game.pos_hint['x'] += 1 / 30
+        self.menu.pos_hint['x'] += 1 / 30
+        self.timer += 1 / 60
+        self.remove_widget(self.game)
+        self.add_widget(self.game)
+        self.remove_widget(self.menu)
+        self.add_widget(self.menu)
+
+    def back_button_previous(self, window, key, *args):
+        if key == 27:
+            self.end_game()
 
 
 class MyApp(App):  # Приложение
