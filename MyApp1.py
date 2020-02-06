@@ -7,20 +7,19 @@ from kivy.graphics import Color, Rectangle
 from kivy.uix.label import Label
 from kivy.uix.image import Image
 from kivy.clock import Clock
+from kivy.core.window import Window
 import random
-import sys
 import sqlite3
 
-Config.set('graphics', 'width', 350)  # Не забыть убрать
-Config.set('graphics', 'height', 350 * 16 // 9)  # Не забыть убрать
+Window.size = (350, 350 * 16 / 9)
 
 width = Config.getint('graphics', 'width')
 height = Config.getint('graphics', 'height')
 
 size_x = 0.05
 size_y = 0.04
-image_x = 0.4
-image_y = 0.17
+image_x = 0.38
+image_y = 0.38 / 16 * 9
 alphabet = list(map(chr, list(range(1040, 1072)))) + ['Ё']
 
 
@@ -29,7 +28,7 @@ class LiterButton(Button):  # Буковка
         super().__init__(text=liter,
                          pos_hint={"x": self_x, "y": self_y},
                          size_hint=(size_x, size_y),
-                         background_color=[0, .5, 0, 1],
+                         background_color=[0, .3, 0.025, 1],
                          background_normal='',
                          background_down='')
         self.x_ = self_x
@@ -65,6 +64,15 @@ class HelpButton(Button):
                          text='?',
                          background_normal='')
         self.working = True
+
+
+class ImageBorder(Widget):
+    def __init__(self, pos_x, pos_y):
+        super(ImageBorder, self).__init__(pos_hint={'x': pos_x, 'y': pos_y},
+                                          size_hint=(0.4, .4 / 16 * 9))
+        with self.canvas.before:
+            Color(.1, .1, .1, 1)
+            self.rect = Rectangle(pos=self.pos, size=self.size)
 
 
 class HintDialog(FloatLayout):
@@ -103,10 +111,43 @@ class HintDialog(FloatLayout):
         self.game.remove_widget(self)
 
 
+class MainMenu(FloatLayout):
+    def __init__(self):
+        super(MainMenu, self).__init__(pos_hint={'x': 0, 'y': 0})
+        self.add_emblem()
+        self.add_label()
+        self.add_button()
+
+    def add_emblem(self):
+        self.add_widget(Image(source='data/fml.png',
+                              size_hint=(0.1, .1),
+                              pos_hint={'x': 0.02, 'y': .9}))
+
+    def add_label(self):
+        self.add_widget(Label(font_name='data/9772.otf',
+                              text='[color=109810]4 фото\n       1 слово[/color]',
+                              pos_hint={'x': 0.01, 'y': 0.6},
+                              size_hint=(1, 0.2),
+                              markup=True,
+                              font_size='50sp'))
+        self.add_widget(Image(source='data/sign.png',
+                              size_hint=(0.23, 0.23),
+                              pos_hint={'x': 0.115, 'y': 0.517}))
+
+    def add_button(self):
+        self.add_widget(Button(text='Играть',
+                               size_hint=(0.4, 0.1),
+                               pos_hint={'x': 0.3, 'y': 0.3},
+                               background_color=(.06, 1, .06, 1),
+                               on_press=self.play_callback))
+
+    def play_callback(self, instance):
+        self.parent.start_game()
+
+
 class Game(FloatLayout):
     def __init__(self):
-        super(Game, self).__init__()
-        self.add_widget(Image(source='data/background.png'))
+        super(Game, self).__init__(pos_hint={'x': 1, 'y': 0})
         self.help_button = HelpButton()
         self.help_button.bind(on_press=self.help_callback)
         self.add_widget(self.help_button)
@@ -161,30 +202,9 @@ class Game(FloatLayout):
         finally:
             self.word = word[1]
         con.close()
-        self.add_widget(Image(source=f'data/{self.word}/1.png',
-                              pos_hint={'x': 0.05, 'y': 0.7},
-                              allow_stretch=True,
-                              keep_ratio=False,
-                              size_hint=(image_x, image_y)))
-        self.add_widget(Image(source=f'data/{self.word}/2.png',
-                              pos_hint={'x': 0.95 - image_x, 'y': 0.7},
-                              allow_stretch=True,
-                              keep_ratio=False,
-                              size_hint=(image_x, image_y)))
-        self.add_widget(Image(source=f'data/{self.word}/3.png',
-                              pos_hint={'x': 0.05, 'y': 0.5},
-                              allow_stretch=True,
-                              keep_ratio=False,
-                              size_hint=(image_x, image_y)))
-        self.add_widget(Image(source=f'data/{self.word}/4.png',
-                              pos_hint={'x': 0.95 - image_x, 'y': 0.5},
-                              allow_stretch=True,
-                              keep_ratio=False,
-                              size_hint=(image_x, image_y)))
-        self.add_widget(Label(text=f'{word[0]}',
-                              pos_hint={'x': 0.35, 'y': 0.8},
-                              size_hint=(0.3, 0.3),
-                              font_size='30sp'))
+
+        self.add_image_borders()
+        self.add_images(word)
         self.new_empty_cages()
         self.add_letters()
 
@@ -195,9 +215,9 @@ class Game(FloatLayout):
             space = 0.01
             big_space = (1 - a * size_x - (a - 1) * space) / 2
             if self.word[i] != ' ':
-                cage = EmptyCage(big_space + i * (size_x + space), 0.4, i)
+                cage = EmptyCage(big_space + i * (size_x + space), 0.3, i)
                 self.cages.append(cage)
-                self.add_widget(EmptyCage(big_space + i * (size_x + space), 0.4, i))
+                self.add_widget(EmptyCage(big_space + i * (size_x + space), 0.3, i))
 
     def add_letters(self):
         b = 11
@@ -213,15 +233,42 @@ class Game(FloatLayout):
 
         space_1 = (1 - b * size_x) / (b + 1)
         for i in range(b):
-            a = LiterButton((i + 1) * space_1 + i * size_x, 0.3, new_letters[i])
+            a = LiterButton((i + 1) * space_1 + i * size_x, 0.2, new_letters[i])
             a.bind(on_press=self.callback)
             self.add_widget(a)
             self.letters.append(a)
         for i in range(b):
-            a = LiterButton((i + 1) * space_1 + i * size_x, 0.2, new_letters[i + b])
+            a = LiterButton((i + 1) * space_1 + i * size_x, 0.1, new_letters[i + b])
             a.bind(on_press=self.callback)
             self.add_widget(a)
             self.letters.append(a)
+
+    def add_images(self, word):
+        pass
+        self.add_widget(Image(source=f'data/{self.word}/1.png',
+                              pos_hint={'x': 0.06, 'y': 0.705},
+                              size_hint=(image_x, image_y)))
+        self.add_widget(Image(source=f'data/{self.word}/2.png',
+                              pos_hint={'x': 0.56, 'y': 0.705},
+                              size_hint=(image_x, image_y)))
+        self.add_widget(Image(source=f'data/{self.word}/3.png',
+                              pos_hint={'x': 0.06, 'y': 0.405},
+                              size_hint=(image_x, image_y)))
+        self.add_widget(Image(source=f'data/{self.word}/4.png',
+                              pos_hint={'x': .56, 'y': 0.405},
+                              size_hint=(image_x, image_y)))
+        self.lvl_label = Label(text=f'[color=109810][b]lvl {word[0]}[/b][/color]',
+                               pos_hint={'x': 0.35, 'y': 0.8},
+                               size_hint=(0.3, 0.3),
+                               font_size='30sp',
+                               markup=True)
+        self.add_widget(self.lvl_label)
+
+    def add_image_borders(self):
+        for i in [(.05, .4), (.05, .7), (.55, .4), (.55, .7)]:
+            a = ImageBorder(*i)
+            a.bind(size=self._update_rect, pos=self._update_rect)
+            self.add_widget(a)
 
     def callback(self, instance):
         if not instance.working:
@@ -274,7 +321,7 @@ class Game(FloatLayout):
                 if i.text == liter:
                     i.pos_hint = {'x': chosen.x_, 'y': chosen.y_}
                     i.working = False
-                    i.background_color = (0, 0.3, 0, 1)
+                    i.background_color = (0, 0.15, 0, 1)
                     chosen.alpha_zero()
                     self.remove_widget(chosen)
                     i.clicked = True
@@ -312,6 +359,7 @@ class Game(FloatLayout):
             self.remove_widget(i)
         for i in self.letters:
             self.remove_widget(i)
+        self.remove_widget(self.lvl_label)
         con = sqlite3.connect('content.sqlite3')
         cur = con.cursor()
         cur.execute(f"""UPDATE levels
@@ -334,14 +382,62 @@ class Game(FloatLayout):
 class Root(FloatLayout):
     def __init__(self):
         super().__init__()
+        self.add_widget(Image(source='data/background1.png',
+                              keep_ratio=False,
+                              allow_stretch=True,
+                              size_hint=(1, 1)))
         self.game = Game()
-        self.start_game()
+        self.menu = MainMenu()
+        self.start()
 
-    def start_game(self):
+        self.timer = 0
+
+    def start(self):
+        self.add_widget(self.menu)
         self.add_widget(self.game)
 
+    def start_game(self):
+        try:
+            self.event.cancel()
+        except AttributeError:
+            pass
+        self.event = Clock.schedule_interval(self.play_callback, 1 / 60)
+        Window.bind(on_keyboard=self.back_button_previous)
+        Config.set('kivy', 'exit_on_escape', 0)
+
     def end_game(self):
+        try:
+            self.event.cancel()
+        except AttributeError:
+            pass
+        self.event = Clock.schedule_interval(self.previous_callback, 1 / 60)
+
+    def play_callback(self, dt):
+        if self.timer <= -0.48:
+            self.event.cancel()
+        self.game.pos_hint['x'] -= 1 / 30
+        self.menu.pos_hint['x'] -= 1 / 30
+        self.timer -= 1 / 60
         self.remove_widget(self.game)
+        self.add_widget(self.game)
+        self.remove_widget(self.menu)
+        self.add_widget(self.menu)
+
+    def previous_callback(self, dt):
+        if self.timer >= -0.02:
+            self.event.cancel()
+            Config.set('kivy', 'exit_on_escape', 1)
+        self.game.pos_hint['x'] += 1 / 30
+        self.menu.pos_hint['x'] += 1 / 30
+        self.timer += 1 / 60
+        self.remove_widget(self.game)
+        self.add_widget(self.game)
+        self.remove_widget(self.menu)
+        self.add_widget(self.menu)
+
+    def back_button_previous(self, window, key, *args):
+        if key == 27:
+            self.end_game()
 
 
 class MyApp(App):  # Приложение
