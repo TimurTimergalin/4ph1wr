@@ -13,8 +13,7 @@ import sqlite3
 
 Window.size = (350, 350 * 16 / 9)
 
-width = Config.getint('graphics', 'width')
-height = Config.getint('graphics', 'height')
+width, height = Window.size
 
 size_x = 0.05
 size_y = 0.04
@@ -54,6 +53,21 @@ class EmptyCage(Button):  # Пустая клеточка
 
     def alpha_zero(self):
         self.background_color = (0, 0, 0, 0)
+
+
+class Settings(FloatLayout):
+    def __init__(self):
+        super().__init__()
+        self.canvas.before.clear()
+        with self.canvas.before:
+            Color(.3, .3, .3, .5)
+            self.rect = Rectangle(sise=self.size, pos=self.pos)
+
+        self.bind(pos=self._update_rect, size=self._update_rect)
+
+    def _update_rect(self, instance):
+        instance.rect.pos = instance.pos
+        instance.rect.size = instance.size
 
 
 class HelpButton(Button):
@@ -114,14 +128,15 @@ class HintDialog(FloatLayout):
 class MainMenu(FloatLayout):
     def __init__(self):
         super(MainMenu, self).__init__(pos_hint={'x': 0, 'y': 0})
-        self.add_emblem()
+        self.add_settings()
         self.add_label()
         self.add_button()
 
-    def add_emblem(self):
-        self.add_widget(Image(source='data/fml.png',
-                              size_hint=(0.1, .1),
-                              pos_hint={'x': 0.02, 'y': .9}))
+    def add_settings(self):
+        self.add_widget(Button(size_hint=(0.15, 0.15 / height * width),
+                               pos_hint={'x': 0.0005, 'y': 0.915},
+                               background_normal='data/settings.png',
+                               background_down='data/settings.png'))
 
     def add_label(self):
         self.add_widget(Label(font_name='data/9772.otf',
@@ -217,7 +232,7 @@ class Game(FloatLayout):
             if self.word[i] != ' ':
                 cage = EmptyCage(big_space + i * (size_x + space), 0.3, i)
                 self.cages.append(cage)
-                self.add_widget(EmptyCage(big_space + i * (size_x + space), 0.3, i))
+                self.add_widget(cage)
 
     def add_letters(self):
         b = 11
