@@ -8,6 +8,9 @@ from kivy.uix.label import Label
 from kivy.uix.image import Image
 from kivy.clock import Clock
 from kivy.core.window import Window
+from kivy.core.audio import SoundLoader
+# from jnius import autoclass
+from itertools import cycle
 import random
 import sqlite3
 
@@ -20,6 +23,39 @@ size_y = 0.04
 image_x = 0.38
 image_y = 0.38 / 16 * 9
 alphabet = list(map(chr, list(range(1040, 1072)))) + ['Ё']
+
+# MediaPlayer = autoclass('android.media.MediaPlayer')
+
+
+class Mixer:
+    on = True
+    right = SoundLoader.load('data/right.mp3')
+    click = SoundLoader.load('data/click.mp3')
+    click.volume = 0.1
+    # right = MediaPlayer()
+    # right.setDataSource('data/right.mp3')
+    # click = MediaPlayer()
+    # click.setDataSource('data/click.mp3')
+    # right.prepare()
+    # click.prepare()
+
+    @staticmethod
+    def play_right():
+        Mixer.right.play()
+
+    @staticmethod
+    def play_click():
+        Mixer.click.play()
+
+    @staticmethod
+    def turn_off():
+        Mixer.right.volume = 0
+        Mixer.click.volume = 0
+
+    @staticmethod
+    def turn_on():
+        Mixer.right.volume = 1
+        Mixer.click.volume = .1
 
 
 class LiterButton(Button):  # Буковка
@@ -55,19 +91,23 @@ class EmptyCage(Button):  # Пустая клеточка
         self.background_color = (0, 0, 0, 0)
 
 
-class Settings(FloatLayout):
+class SettingsButton(Button):
     def __init__(self):
-        super().__init__()
-        self.canvas.before.clear()
-        with self.canvas.before:
-            Color(.3, .3, .3, .5)
-            self.rect = Rectangle(sise=self.size, pos=self.pos)
+        super(SettingsButton, self).__init__(size_hint=(0.15, 0.15 / height * width),
+                                             pos_hint={'x': 0.0005, 'y': 0.915},
+                                             background_normal='data/sound.png',
+                                             background_down='data/sound.png')
+        self.images = cycle(['data/no_sound.png', 'data/sound.png'])
 
-        self.bind(pos=self._update_rect, size=self._update_rect)
-
-    def _update_rect(self, instance):
-        instance.rect.pos = instance.pos
-        instance.rect.size = instance.size
+    def change_image(self, instance):
+        new_image = next(self.images)
+        self.background_normal = new_image
+        self.background_down = new_image
+        if Mixer.on:
+            Mixer.turn_off()
+        else:
+            Mixer.turn_on()
+        Mixer.on = not Mixer.on
 
 
 class HelpButton(Button):
@@ -120,6 +160,7 @@ class HintDialog(FloatLayout):
                                on_press=self.callback))
 
     def callback(self, instance):
+        Mixer.play_click()
         if instance.text == 'Да':
             self.game.hint()
         self.game.remove_widget(self)
@@ -131,12 +172,16 @@ class MainMenu(FloatLayout):
         self.add_settings()
         self.add_label()
         self.add_button()
+        self.add_emblem()
 
     def add_settings(self):
-        self.add_widget(Button(size_hint=(0.15, 0.15 / height * width),
-                               pos_hint={'x': 0.0005, 'y': 0.915},
-                               background_normal='data/settings.png',
-                               background_down='data/settings.png'))
+        a = SettingsButton()
+        a.bind(on_press=a.change_image)
+        self.add_widget(a)
+
+    def add_emblem(self):
+        self.add_widget(Image(source='data/fml.png',
+                              size_hint=(.1, .1)))
 
     def add_label(self):
         self.add_widget(Label(font_name='data/9772.otf',
@@ -157,7 +202,12 @@ class MainMenu(FloatLayout):
                                on_press=self.play_callback))
 
     def play_callback(self, instance):
+        Mixer.play_click()
         self.parent.start_game()
+
+    def settings_callback(self, instance):
+        Mixer.play_click()
+        self.parent.open_settings()
 
 
 class Game(FloatLayout):
@@ -286,6 +336,7 @@ class Game(FloatLayout):
             self.add_widget(a)
 
     def callback(self, instance):
+        Mixer.play_click()
         if not instance.working:
             return
         if not instance.clicked:
@@ -307,6 +358,7 @@ class Game(FloatLayout):
         self.check_win()
 
     def help_callback(self, instance):
+        Mixer.play_click()
         if not instance.working:
             return
         if self.score < 60:
@@ -385,6 +437,7 @@ class Game(FloatLayout):
         SET money = ?""", (self.score,))
         con.commit()
         con.close()
+        Mixer.play_right()
         self.new_word()
         self.help_button.working = True
         self.get_score()
