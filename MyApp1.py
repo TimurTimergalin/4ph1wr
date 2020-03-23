@@ -20,8 +20,8 @@ width, height = Window.size
 
 size_x = 0.05
 size_y = 0.04
-image_x = 0.38
-image_y = 0.38 / 16 * 9
+image_x = 0.43
+image_y = 0.43 / 16 * 9
 alphabet = list(map(chr, list(range(1040, 1072)))) + ['Ё']
 
 # MediaPlayer = autoclass('android.media.MediaPlayer')
@@ -123,7 +123,7 @@ class HelpButton(Button):
 class ImageBorder(Widget):
     def __init__(self, pos_x, pos_y):
         super(ImageBorder, self).__init__(pos_hint={'x': pos_x, 'y': pos_y},
-                                          size_hint=(0.4, .4 / 16 * 9))
+                                          size_hint=(0.45, .45 / 16 * 9))
         with self.canvas.before:
             Color(.1, .1, .1, 1)
             self.rect = Rectangle(pos=self.pos, size=self.size)
@@ -182,6 +182,10 @@ class MainMenu(FloatLayout):
     def add_emblem(self):
         self.add_widget(Image(source='data/fml.png',
                               size_hint=(.1, .1)))
+        self.add_widget(Label(text='МАОУ "Лицей №131"',
+                              font_size='17sp',
+                              pos_hint={'x': 0.2, 'y': 0},
+                              size_hint=(.4, .1)))
 
     def add_label(self):
         self.add_widget(Label(font_name='data/9772.otf',
@@ -255,7 +259,7 @@ class Game(FloatLayout):
         con = sqlite3.connect('content.sqlite3')
         cur = con.cursor()
         word = cur.execute("""SELECT id, answer FROM levels
-        WHERE done = 0""").fetchone()
+        WHERE done = 0 ORDER BY id""").fetchone()
         try:  # Этот блок описывает действия, если все уровни пройдены
             self.word = word[1]
         except TypeError:  # Его нужно будет изменить
@@ -263,7 +267,7 @@ class Game(FloatLayout):
             SET done = 0""")
             con.commit()
             word = cur.execute("""SELECT id, answer FROM levels
-                    WHERE done = 0""").fetchone()
+                    WHERE done = 0 ORDER BY id""").fetchone()
         finally:
             self.word = word[1]
         con.close()
@@ -311,16 +315,16 @@ class Game(FloatLayout):
     def add_images(self, word):
         pass
         self.add_widget(Image(source=f'data/{self.word}/1.png',
-                              pos_hint={'x': 0.06, 'y': 0.705},
+                              pos_hint={'x': 0.05, 'y': 0.655},
                               size_hint=(image_x, image_y)))
         self.add_widget(Image(source=f'data/{self.word}/2.png',
-                              pos_hint={'x': 0.56, 'y': 0.705},
+                              pos_hint={'x': 0.52, 'y': 0.655},
                               size_hint=(image_x, image_y)))
         self.add_widget(Image(source=f'data/{self.word}/3.png',
-                              pos_hint={'x': 0.06, 'y': 0.405},
+                              pos_hint={'x': 0.05, 'y': 0.355},
                               size_hint=(image_x, image_y)))
         self.add_widget(Image(source=f'data/{self.word}/4.png',
-                              pos_hint={'x': .56, 'y': 0.405},
+                              pos_hint={'x': .52, 'y': 0.355},
                               size_hint=(image_x, image_y)))
         self.lvl_label = Label(text=f'[color=109810][b]lvl {word[0]}[/b][/color]',
                                pos_hint={'x': 0.35, 'y': 0.8},
@@ -330,7 +334,7 @@ class Game(FloatLayout):
         self.add_widget(self.lvl_label)
 
     def add_image_borders(self):
-        for i in [(.05, .4), (.05, .7), (.55, .4), (.55, .7)]:
+        for i in [(.04, .35), (.04, .65), (.51, .35), (.51, .65)]:
             a = ImageBorder(*i)
             a.bind(size=self._update_rect, pos=self._update_rect)
             self.add_widget(a)
