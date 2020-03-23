@@ -461,23 +461,17 @@ class Game(FloatLayout):
 
 
 class Root(FloatLayout):
-    def __new__(cls, *args, **kwargs):
-        if not hasattr(cls, '_instance'):
-            cls._instance = super().__new__(*args, **kwargs)
-        return cls._instance
-
     def __init__(self):
         super().__init__()
-        if not hasattr(self, 'game'):
-            self.add_widget(Image(source='data/background1.png',
-                                  keep_ratio=False,
-                                  allow_stretch=True,
-                                  size_hint=(1, 1)))
-            self.game = Game()
-            self.menu = MainMenu()
-            self.start()
+        self.add_widget(Image(source='data/background1.png',
+                              keep_ratio=False,
+                              allow_stretch=True,
+                              size_hint=(1, 1)))
+        self.game = Game()
+        self.menu = MainMenu()
+        self.start()
 
-            self.timer = 0
+        self.timer = 0
 
     def start(self):
         self.add_widget(self.menu)
