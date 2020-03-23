@@ -13,15 +13,16 @@ from kivy.core.audio import SoundLoader
 from itertools import cycle
 import random
 import sqlite3
+import atexit
 
-Window.size = (350, 350 * 16 / 9)
+Window.size = (350, 350 * 4 / 3)
 
 width, height = Window.size
 
 size_x = 0.05
 size_y = 0.04
-image_x = 0.43
-image_y = 0.43 / 16 * 9
+image_x = 0.35
+image_y = 0.35
 alphabet = list(map(chr, list(range(1040, 1072)))) + ['Ё']
 
 # MediaPlayer = autoclass('android.media.MediaPlayer')
@@ -93,8 +94,8 @@ class EmptyCage(Button):  # Пустая клеточка
 
 class SettingsButton(Button):
     def __init__(self):
-        super(SettingsButton, self).__init__(size_hint=(0.15, 0.15 / height * width),
-                                             pos_hint={'x': 0.0005, 'y': 0.915},
+        super(SettingsButton, self).__init__(size_hint=(0.125, 0.125 / height * width),
+                                             pos_hint={'x': 0.025, 'y': 0.915},
                                              background_normal='data/sound.png',
                                              background_down='data/sound.png')
         self.images = cycle(['data/no_sound.png', 'data/sound.png'])
@@ -123,7 +124,7 @@ class HelpButton(Button):
 class ImageBorder(Widget):
     def __init__(self, pos_x, pos_y):
         super(ImageBorder, self).__init__(pos_hint={'x': pos_x, 'y': pos_y},
-                                          size_hint=(0.45, .45 / 16 * 9))
+                                          size_hint=(0.2, .2 / width * height))
         with self.canvas.before:
             Color(.1, .1, .1, 1)
             self.rect = Rectangle(pos=self.pos, size=self.size)
@@ -180,12 +181,13 @@ class MainMenu(FloatLayout):
         self.add_widget(a)
 
     def add_emblem(self):
-        self.add_widget(Image(source='data/fml.png',
-                              size_hint=(.1, .1)))
         self.add_widget(Label(text='МАОУ "Лицей №131"',
                               font_size='17sp',
                               pos_hint={'x': 0.2, 'y': 0},
                               size_hint=(.4, .1)))
+        self.add_widget(Image(source='data/fml.png',
+                              size_hint=(.1, .1),
+                              pos_hint={'x': .01, 'y': .01}))
 
     def add_label(self):
         self.add_widget(Label(font_name='data/9772.otf',
@@ -222,6 +224,7 @@ class Game(FloatLayout):
         self.add_widget(self.help_button)
         self.cages = []
         self.letters = []
+        self.images = []
         self.new_word()
         self.get_score()
 
@@ -240,7 +243,7 @@ class Game(FloatLayout):
         self.add_widget(Image(source='data/coin.png',
                               allow_stretch=True,
                               keep_ratio=False,
-                              size_hint=(0.03, 0.03 / 16 * 9),
+                              size_hint=(0.03, 0.03 / height * width),
                               pos_hint={'x': 0.95, 'y': 0.9555}))
 
     def pay(self):
@@ -272,10 +275,14 @@ class Game(FloatLayout):
             self.word = word[1]
         con.close()
 
-        self.add_image_borders()
         self.add_images(word)
-        self.new_empty_cages()
-        self.add_letters()
+        with open('save.txt') as file:
+            content = file.read()
+            if not content.strip():
+                self.new_empty_cages()
+                self.add_letters()
+            else:
+                eval(content)
 
     def new_empty_cages(self):
         self.cage_coords = []
@@ -284,7 +291,7 @@ class Game(FloatLayout):
             space = 0.01
             big_space = (1 - a * size_x - (a - 1) * space) / 2
             if self.word[i] != ' ':
-                cage = EmptyCage(big_space + i * (size_x + space), 0.3, i)
+                cage = EmptyCage(big_space + i * (size_x + space), 0.27, i)
                 self.cages.append(cage)
                 self.add_widget(cage)
 
@@ -302,42 +309,44 @@ class Game(FloatLayout):
 
         space_1 = (1 - b * size_x) / (b + 1)
         for i in range(b):
-            a = LiterButton((i + 1) * space_1 + i * size_x, 0.2, new_letters[i])
+            a = LiterButton((i + 1) * space_1 + i * size_x, 0.17, new_letters[i])
             a.bind(on_press=self.callback)
             self.add_widget(a)
             self.letters.append(a)
         for i in range(b):
-            a = LiterButton((i + 1) * space_1 + i * size_x, 0.1, new_letters[i + b])
+            a = LiterButton((i + 1) * space_1 + i * size_x, 0.07, new_letters[i + b])
             a.bind(on_press=self.callback)
             self.add_widget(a)
             self.letters.append(a)
 
     def add_images(self, word):
         pass
-        self.add_widget(Image(source=f'data/{self.word}/1.png',
-                              pos_hint={'x': 0.05, 'y': 0.655},
-                              size_hint=(image_x, image_y)))
-        self.add_widget(Image(source=f'data/{self.word}/2.png',
-                              pos_hint={'x': 0.52, 'y': 0.655},
-                              size_hint=(image_x, image_y)))
-        self.add_widget(Image(source=f'data/{self.word}/3.png',
-                              pos_hint={'x': 0.05, 'y': 0.355},
-                              size_hint=(image_x, image_y)))
-        self.add_widget(Image(source=f'data/{self.word}/4.png',
-                              pos_hint={'x': .52, 'y': 0.355},
-                              size_hint=(image_x, image_y)))
+        a = Image(source=f'data/{self.word}/1.png',
+                  pos_hint={'x': 0.05, 'y': 0.585},
+                  size_hint=(image_x, image_y))
+        self.add_widget(a)
+        self.images.append(a)
+        a = Image(source=f'data/{self.word}/2.png',
+                  pos_hint={'x': 1 - 0.05 - 0.35, 'y': 0.585},
+                  size_hint=(image_x, image_y))
+        self.add_widget(a)
+        self.images.append(a)
+        a = Image(source=f'data/{self.word}/3.png',
+                  pos_hint={'x': 0.05, 'y': 0.285},
+                  size_hint=(image_x, image_y))
+        self.add_widget(a)
+        self.images.append(a)
+        a = Image(source=f'data/{self.word}/4.png',
+                  pos_hint={'x': 1 - 0.05 - 0.35, 'y': 0.285},
+                  size_hint=(image_x, image_y))
+        self.add_widget(a)
+        self.images.append(a)
         self.lvl_label = Label(text=f'[color=109810][b]lvl {word[0]}[/b][/color]',
                                pos_hint={'x': 0.35, 'y': 0.8},
                                size_hint=(0.3, 0.3),
                                font_size='30sp',
                                markup=True)
         self.add_widget(self.lvl_label)
-
-    def add_image_borders(self):
-        for i in [(.04, .35), (.04, .65), (.51, .35), (.51, .65)]:
-            a = ImageBorder(*i)
-            a.bind(size=self._update_rect, pos=self._update_rect)
-            self.add_widget(a)
 
     def callback(self, instance):
         Mixer.play_click()
@@ -452,17 +461,23 @@ class Game(FloatLayout):
 
 
 class Root(FloatLayout):
+    def __new__(cls, *args, **kwargs):
+        if not hasattr(cls, '_instance'):
+            cls._instance = super().__new__(*args, **kwargs)
+        return cls._instance
+
     def __init__(self):
         super().__init__()
-        self.add_widget(Image(source='data/background1.png',
-                              keep_ratio=False,
-                              allow_stretch=True,
-                              size_hint=(1, 1)))
-        self.game = Game()
-        self.menu = MainMenu()
-        self.start()
+        if not hasattr(self, 'game'):
+            self.add_widget(Image(source='data/background1.png',
+                                  keep_ratio=False,
+                                  allow_stretch=True,
+                                  size_hint=(1, 1)))
+            self.game = Game()
+            self.menu = MainMenu()
+            self.start()
 
-        self.timer = 0
+            self.timer = 0
 
     def start(self):
         self.add_widget(self.menu)
@@ -517,5 +532,10 @@ class MyApp(App):  # Приложение
         return Root()
 
 
+def save():
+    pass
+
+
 if __name__ == '__main__':
+    atexit.register(save)
     MyApp().run()
