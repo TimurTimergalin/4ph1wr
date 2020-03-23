@@ -15,7 +15,7 @@ import random
 import sqlite3
 import atexit
 
-Window.size = (350, 350 * 4 / 3)
+Window.size = (350, 350 * 16 / 9)
 
 width, height = Window.size
 
@@ -198,7 +198,7 @@ class MainMenu(FloatLayout):
                               font_size='50sp'))
         self.add_widget(Image(source='data/sign.png',
                               size_hint=(0.23, 0.23),
-                              pos_hint={'x': 0.115, 'y': 0.517}))
+                              pos_hint={'x': 0.115, 'y': 0.5}))
 
     def add_button(self):
         self.add_widget(Button(text='Играть',
