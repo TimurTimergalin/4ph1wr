@@ -9,11 +9,9 @@ from kivy.uix.image import Image
 from kivy.clock import Clock
 from kivy.core.window import Window
 from kivy.core.audio import SoundLoader
-# from jnius import autoclass
 from itertools import cycle
 import random
 import sqlite3
-import atexit
 
 Window.size = (350, 350 * 16 / 9)
 
@@ -25,20 +23,13 @@ image_x = 0.35
 image_y = 0.35
 alphabet = list(map(chr, list(range(1040, 1072)))) + ['Ё']
 
-# MediaPlayer = autoclass('android.media.MediaPlayer')
-
 
 class Mixer:
     on = True
     right = SoundLoader.load('data/right.mp3')
     click = SoundLoader.load('data/click.mp3')
+    win = SoundLoader.load('data/win.mp3')
     click.volume = 0.1
-    # right = MediaPlayer()
-    # right.setDataSource('data/right.mp3')
-    # click = MediaPlayer()
-    # click.setDataSource('data/click.mp3')
-    # right.prepare()
-    # click.prepare()
 
     @staticmethod
     def play_right():
@@ -52,11 +43,17 @@ class Mixer:
     def turn_off():
         Mixer.right.volume = 0
         Mixer.click.volume = 0
+        Mixer.win.volume = 0
 
     @staticmethod
     def turn_on():
         Mixer.right.volume = 1
         Mixer.click.volume = .1
+        Mixer.win.volume = 1
+
+    @staticmethod
+    def play_win():
+        Mixer.win.play()
 
 
 class LiterButton(Button):  # Буковка
@@ -257,6 +254,7 @@ class Game(FloatLayout):
         self.get_score()
 
     def new_word(self):  # Новое слово
+        print(self.parent)
         self.cages = []
         self.letters = []
         con = sqlite3.connect('content.sqlite3')
@@ -271,6 +269,7 @@ class Game(FloatLayout):
             con.commit()
             word = cur.execute("""SELECT id, answer FROM levels
                     WHERE done = 0 ORDER BY id""").fetchone()
+            Mixer.play_win()
         finally:
             self.word = word[1]
         con.close()
@@ -286,7 +285,6 @@ class Game(FloatLayout):
                     if not i:
                         continue
                     a = eval(i)
-                    print(a)
                     if type(a) == EmptyCage:
                         self.cages.append(a)
                     else:
