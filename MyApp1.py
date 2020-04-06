@@ -60,7 +60,7 @@ class Mixer:
 
 
 class LiterButton(Button):  # Буковка
-    def __init__(self, self_x, self_y, liter):
+    def __init__(self, self_x, self_y, liter, clicked=False, working=True):
         super().__init__(text=liter,
                          pos_hint={"x": self_x, "y": self_y},
                          size_hint=(size_x, size_y),
@@ -69,14 +69,14 @@ class LiterButton(Button):  # Буковка
                          background_down='')
         self.x_ = self_x
         self.y_ = self_y
-        self.clicked = False
+        self.clicked = clicked
         self.cage = None
         self.letter = liter
-        self.working = True
+        self.working = working
 
 
 class EmptyCage(Button):  # Пустая клеточка
-    def __init__(self, x, y, num):
+    def __init__(self, x, y, num, filled=False):
         super().__init__(pos_hint={'x': x, 'y': y},
                          size_hint=(size_x, size_y),
                          background_color=(.5, .5, .5, 1),
@@ -84,7 +84,7 @@ class EmptyCage(Button):  # Пустая клеточка
                          background_down='')
         self.x_ = x
         self.y_ = y
-        self.filled = False
+        self.filled = filled
         self.let = None
         self.num = num
 
@@ -277,12 +277,34 @@ class Game(FloatLayout):
 
         self.add_images(word)
         with open('save.txt') as file:
-            content = file.read()
-            if not content.strip():
+            content = file.read().strip()
+            if not content:
                 self.new_empty_cages()
                 self.add_letters()
             else:
-                eval(content)
+                for i in content.split('\n'):
+                    if not i:
+                        continue
+                    a = eval(i)
+                    print(a)
+                    if type(a) == EmptyCage:
+                        self.cages.append(a)
+                    else:
+                        self.letters.append(a)
+                        a.bind(on_press=self.callback)
+                    self.add_widget(a)
+                print(self.cages)
+                print(self.letters)
+                self.normalize()
+
+    def normalize(self):
+        for i in self.letters:
+            if i.clicked:
+                for j in self.cages:
+                    if j.filled:
+                        if i.pos_hint == j.pos_hint:
+                            i.cage = j
+                            j.let = i
 
     def new_empty_cages(self):
         self.cage_coords = []
@@ -368,6 +390,7 @@ class Game(FloatLayout):
             instance.cage = None
             instance.clicked = False
 
+        save(self)
         self.check_win()
 
     def help_callback(self, instance):
@@ -418,6 +441,7 @@ class Game(FloatLayout):
                         self.callback(i.let)
                         break
 
+            save(self)
             self.check_win()
 
     def check_win(self):
@@ -451,6 +475,8 @@ class Game(FloatLayout):
         con.commit()
         con.close()
         Mixer.play_right()
+        with open('save.txt', 'w'):
+            pass
         self.new_word()
         self.help_button.working = True
         self.get_score()
@@ -526,10 +552,13 @@ class MyApp(App):  # Приложение
         return Root()
 
 
-def save():
-    pass
+def save(game: Game):
+    with open('save.txt', 'w') as file:
+        for i in game.cages:
+            file.write(f'EmptyCage({i.pos_hint["x"]}, {i.pos_hint["y"]}, {i.num}, {i.filled})\n')
+        for i in game.letters:
+            file.write(f'LiterButton({i.pos_hint["x"]}, {i.pos_hint["y"]}, \'{i.letter}\', {i.clicked}, {i.working})\n')
 
 
 if __name__ == '__main__':
-    atexit.register(save)
     MyApp().run()
