@@ -13,8 +13,6 @@ from itertools import cycle
 import random
 import sqlite3
 
-Window.size = (350, 350 * 16 / 9)
-
 width, height = Window.size
 
 size_x = 0.05
@@ -57,15 +55,19 @@ class Mixer:
 
 
 class LiterButton(Button):  # Буковка
-    def __init__(self, self_x, self_y, liter, clicked=False, working=True):
+    def __init__(self, self_x, self_y, liter, clicked=False, working=True, base_x=None, base_y=None):
         super().__init__(text=liter,
                          pos_hint={"x": self_x, "y": self_y},
                          size_hint=(size_x, size_y),
                          background_color=[0, .3, 0.025, 1],
                          background_normal='',
                          background_down='')
-        self.x_ = self_x
-        self.y_ = self_y
+        if not base_x:
+            self.x_ = self_x
+            self.y_ = self_y
+        else:
+            self.x_ = base_x
+            self.y_ = base_y
         self.clicked = clicked
         self.cage = None
         self.letter = liter
@@ -116,15 +118,6 @@ class HelpButton(Button):
                          text='?',
                          background_normal='')
         self.working = True
-
-
-class ImageBorder(Widget):
-    def __init__(self, pos_x, pos_y):
-        super(ImageBorder, self).__init__(pos_hint={'x': pos_x, 'y': pos_y},
-                                          size_hint=(0.2, .2 / width * height))
-        with self.canvas.before:
-            Color(.1, .1, .1, 1)
-            self.rect = Rectangle(pos=self.pos, size=self.size)
 
 
 class HintDialog(FloatLayout):
@@ -555,7 +548,9 @@ def save(game: Game):
         for i in game.cages:
             file.write(f'EmptyCage({i.pos_hint["x"]}, {i.pos_hint["y"]}, {i.num}, {i.filled})\n')
         for i in game.letters:
-            file.write(f'LiterButton({i.pos_hint["x"]}, {i.pos_hint["y"]}, \'{i.letter}\', {i.clicked}, {i.working})\n')
+            file.write(
+                f'LiterButton({i.pos_hint["x"]}, {i.pos_hint["y"]}, \'{i.letter}\', {i.clicked}, {i.working}, {i.x_}, {i.y_})\n'
+            )
 
 
 if __name__ == '__main__':
