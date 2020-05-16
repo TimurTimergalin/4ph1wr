@@ -13,7 +13,7 @@ from itertools import cycle
 import random
 import sqlite3
 
-width, height = Window.size
+width, height = Window.size = 350, 350 * 16 / 9
 
 size_x = 0.05
 size_y = 0.04
@@ -26,7 +26,6 @@ class Mixer:
     on = True
     right = SoundLoader.load('data/right.mp3')
     click = SoundLoader.load('data/click.mp3')
-    win = SoundLoader.load('data/win.mp3')
     click.volume = 0.1
 
     @staticmethod
@@ -41,17 +40,11 @@ class Mixer:
     def turn_off():
         Mixer.right.volume = 0
         Mixer.click.volume = 0
-        Mixer.win.volume = 0
 
     @staticmethod
     def turn_on():
         Mixer.right.volume = 1
         Mixer.click.volume = .1
-        Mixer.win.volume = 1
-
-    @staticmethod
-    def play_win():
-        Mixer.win.play()
 
 
 class LiterButton(Button):  # Буковка
@@ -262,7 +255,6 @@ class Game(FloatLayout):
             con.commit()
             word = cur.execute("""SELECT id, answer FROM levels
                     WHERE done = 0 ORDER BY id""").fetchone()
-            Mixer.play_win()
         finally:
             self.word = word[1]
         con.close()
