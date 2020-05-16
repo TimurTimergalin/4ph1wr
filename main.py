@@ -13,7 +13,7 @@ from itertools import cycle
 import random
 import sqlite3
 
-width, height = Window.size = 350, 350 * 16 / 9
+width, height = Window.size
 
 size_x = 0.05
 size_y = 0.04
@@ -84,25 +84,6 @@ class EmptyCage(Button):  # Пустая клеточка
         self.background_color = (0, 0, 0, 0)
 
 
-class SettingsButton(Button):
-    def __init__(self):
-        super(SettingsButton, self).__init__(size_hint=(0.125, 0.125 / height * width),
-                                             pos_hint={'x': 0.025, 'y': 0.915},
-                                             background_normal='data/sound.png',
-                                             background_down='data/sound.png')
-        self.images = cycle(['data/no_sound.png', 'data/sound.png'])
-
-    def change_image(self, instance):
-        new_image = next(self.images)
-        self.background_normal = new_image
-        self.background_down = new_image
-        if Mixer.on:
-            Mixer.turn_off()
-        else:
-            Mixer.turn_on()
-        Mixer.on = not Mixer.on
-
-
 class HelpButton(Button):
     def __init__(self):
         super().__init__(pos_hint={'x': 0.01, 'y': 0.95},
@@ -153,15 +134,9 @@ class HintDialog(FloatLayout):
 class MainMenu(FloatLayout):
     def __init__(self):
         super(MainMenu, self).__init__(pos_hint={'x': 0, 'y': 0})
-        self.add_settings()
         self.add_label()
         self.add_button()
         self.add_emblem()
-
-    def add_settings(self):
-        a = SettingsButton()
-        a.bind(on_press=a.change_image)
-        self.add_widget(a)
 
     def add_emblem(self):
         self.add_widget(Label(text='МАОУ "Лицей №131"',
@@ -179,9 +154,6 @@ class MainMenu(FloatLayout):
                               size_hint=(1, 0.2),
                               markup=True,
                               font_size='50sp'))
-        self.add_widget(Image(source='data/sign.png',
-                              size_hint=(0.23, 0.23),
-                              pos_hint={'x': 0.115, 'y': 0.5}))
 
     def add_button(self):
         self.add_widget(Button(text='Играть',
@@ -452,7 +424,7 @@ class Game(FloatLayout):
         cur.execute(f"""UPDATE levels
         SET done = 1
         WHERE answer = ?""", (self.word,))
-        self.score += 50
+        self.score += 10
         cur.execute("""UPDATE stats
         SET money = ?""", (self.score,))
         con.commit()
