@@ -220,7 +220,7 @@ class Game(FloatLayout):
         word = cur.execute("""SELECT id, answer FROM levels
         WHERE done = 0 ORDER BY id""").fetchone()
         try:  # Этот блок описывает действия, если все уровни пройдены
-            self.word = word[1]
+            self.word = word
         except TypeError:  # Его нужно будет изменить
             cur.execute("""UPDATE levels
             SET done = 0""")
@@ -228,7 +228,7 @@ class Game(FloatLayout):
             word = cur.execute("""SELECT id, answer FROM levels
                     WHERE done = 0 ORDER BY id""").fetchone()
         finally:
-            self.word = word[1]
+            self.word = word
         con.close()
 
         self.add_images(word)
@@ -263,11 +263,11 @@ class Game(FloatLayout):
 
     def new_empty_cages(self):
         self.cage_coords = []
-        a = len(self.word)
+        a = len(self.word[1])
         for i in range(a):
             space = 0.01
             big_space = (1 - a * size_x - (a - 1) * space) / 2
-            if self.word[i] != ' ':
+            if self.word[1][i] != ' ':
                 cage = EmptyCage(big_space + i * (size_x + space), 0.27, i)
                 self.cages.append(cage)
                 self.add_widget(cage)
@@ -277,11 +277,11 @@ class Game(FloatLayout):
         new_letters = random.choices(population=alphabet, k=b * 2)
 
         let_nums = list(range(2 * b))
-        for i in range(len(self.word)):
-            if self.word[i] == ' ':
+        for i in range(len(self.word[1])):
+            if self.word[1][i] == ' ':
                 continue
             a = random.choice(let_nums)
-            new_letters[a] = self.word[i]
+            new_letters[a] = self.word[1][i]
             let_nums.remove(a)
 
         space_1 = (1 - b * size_x) / (b + 1)
@@ -297,23 +297,22 @@ class Game(FloatLayout):
             self.letters.append(a)
 
     def add_images(self, word):
-        pass
-        a = Image(source=f'data/{self.word}/1.png',
+        a = Image(source=f'data/{self.word[0]}/1.png',
                   pos_hint={'x': 0.05, 'y': 0.585},
                   size_hint=(image_x, image_y))
         self.add_widget(a)
         self.images.append(a)
-        a = Image(source=f'data/{self.word}/2.png',
+        a = Image(source=f'data/{self.word[0]}/2.png',
                   pos_hint={'x': 1 - 0.05 - 0.35, 'y': 0.585},
                   size_hint=(image_x, image_y))
         self.add_widget(a)
         self.images.append(a)
-        a = Image(source=f'data/{self.word}/3.png',
+        a = Image(source=f'data/{self.word[0]}/3.png',
                   pos_hint={'x': 0.05, 'y': 0.285},
                   size_hint=(image_x, image_y))
         self.add_widget(a)
         self.images.append(a)
-        a = Image(source=f'data/{self.word}/4.png',
+        a = Image(source=f'data/{self.word[0]}/4.png',
                   pos_hint={'x': 1 - 0.05 - 0.35, 'y': 0.285},
                   size_hint=(image_x, image_y))
         self.add_widget(a)
@@ -367,12 +366,12 @@ class Game(FloatLayout):
             for i in self.cages:
                 if not i.let.working:
                     continue
-                if i.let.letter != self.word[i.num]:
+                if i.let.letter != self.word[1][i.num]:
                     self.callback(i.let)
                     break
         else:
             done = False
-            liter = ''.join(self.word.split())[chosen.num]
+            liter = ''.join(self.word[1].split())[chosen.num]
             for i in self.letters:
                 if i.clicked:
                     continue
@@ -392,7 +391,7 @@ class Game(FloatLayout):
                 for i in self.cages:
                     if not i.let.working:
                         continue
-                    if i.let.letter != self.word[i.num]:
+                    if i.let.letter != self.word[1][i.num]:
                         self.callback(i.let)
                         break
 
@@ -407,7 +406,7 @@ class Game(FloatLayout):
                 cur_word += a
             except AttributeError:
                 break
-        if cur_word == ''.join(self.word.split()):
+        if cur_word == ''.join(self.word[1].split()):
             for i in self.letters:
                 i.working = False
             self.help_button.working = False
@@ -423,7 +422,7 @@ class Game(FloatLayout):
         cur = con.cursor()
         cur.execute(f"""UPDATE levels
         SET done = 1
-        WHERE answer = ?""", (self.word,))
+        WHERE answer = ?""", (self.word[1],))
         self.score += 10
         cur.execute("""UPDATE stats
         SET money = ?""", (self.score,))
