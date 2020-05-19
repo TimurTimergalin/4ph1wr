@@ -13,7 +13,7 @@ from itertools import cycle
 import random
 import sqlite3
 
-width, height = Window.size
+width, height = Window.size = 400, 400 * 16 // 9
 
 size_x = 0.05
 size_y = 0.04
@@ -212,7 +212,6 @@ class Game(FloatLayout):
         self.get_score()
 
     def new_word(self):  # Новое слово
-        print(self.parent)
         self.cages = []
         self.letters = []
         con = sqlite3.connect('content.sqlite3')
@@ -220,7 +219,7 @@ class Game(FloatLayout):
         word = cur.execute("""SELECT id, answer FROM levels
         WHERE done = 0 ORDER BY id""").fetchone()
         try:  # Этот блок описывает действия, если все уровни пройдены
-            self.word = word
+            self.word = word[:]
         except TypeError:  # Его нужно будет изменить
             cur.execute("""UPDATE levels
             SET done = 0""")
@@ -248,8 +247,6 @@ class Game(FloatLayout):
                         self.letters.append(a)
                         a.bind(on_press=self.callback)
                     self.add_widget(a)
-                print(self.cages)
-                print(self.letters)
                 self.normalize()
 
     def normalize(self):
