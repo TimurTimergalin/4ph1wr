@@ -24,8 +24,8 @@ alphabet = list(map(chr, list(range(1040, 1072)))) + ['Ё']
 
 class Mixer:
     on = True
-    right = SoundLoader.load('data/right.mp3')
-    click = SoundLoader.load('data/click.mp3')
+    right = SoundLoader.load('data/right.wav')
+    click = SoundLoader.load('data/click.wav')
     click.volume = 0.1
 
     @staticmethod
