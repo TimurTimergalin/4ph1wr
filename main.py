@@ -13,7 +13,7 @@ from itertools import cycle
 import random
 import sqlite3
 
-width, height = Window.size = 400, 400 * 16 // 9
+width, height = Window.size
 
 size_x = 0.05
 size_y = 0.04
@@ -413,6 +413,8 @@ class Game(FloatLayout):
         for i in self.cages:
             self.remove_widget(i)
         for i in self.letters:
+            self.remove_widget(i)
+        for i in self.children:
             self.remove_widget(i)
         self.remove_widget(self.lvl_label)
         con = sqlite3.connect('content.sqlite3')
