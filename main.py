@@ -13,7 +13,7 @@ from itertools import cycle
 import random
 import sqlite3
 
-width, height = Window.size = 400, 400 * 16 // 9
+width, height = Window.size
 
 size_x = 0.05
 size_y = 0.04
