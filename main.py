@@ -414,7 +414,7 @@ class Game(FloatLayout):
             self.remove_widget(i)
         for i in self.letters:
             self.remove_widget(i)
-        for i in self.children:
+        for i in self.images:
             self.remove_widget(i)
         self.remove_widget(self.lvl_label)
         con = sqlite3.connect('content.sqlite3')
