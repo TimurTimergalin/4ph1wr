@@ -13,7 +13,7 @@ from itertools import cycle
 import random
 import sqlite3
 
-width, height = Window.size
+width, height = Window.size = 400, 400 * 16 // 9
 
 size_x = 0.05
 size_y = 0.04
@@ -270,7 +270,7 @@ class Game(FloatLayout):
                 self.add_widget(cage)
 
     def add_letters(self):
-        b = 11
+        b = 7
         new_letters = random.choices(population=alphabet, k=b * 2)
 
         let_nums = list(range(2 * b))
